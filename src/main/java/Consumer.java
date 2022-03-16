@@ -56,7 +56,7 @@ public class Consumer {
             }
         };
         // start threads and block to receive messages
-        for(int i=0; i<300; i++) {
+        for(int i=0; i<100; i++) {
             Thread recv =new Thread(runnable);
             recv.start();
         }
