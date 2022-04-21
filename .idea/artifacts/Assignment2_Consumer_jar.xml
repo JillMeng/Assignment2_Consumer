@@ -25,6 +25,10 @@
       <element id="library" level="project" name="Maven: org.json:json:20211205" />
       <element id="library" level="project" name="Maven: org.slf4j:slf4j-api:1.7.36" />
       <element id="library" level="project" name="Maven: org.slf4j:slf4j-simple:1.7.36" />
+      <element id="library" level="project" name="Maven: com.googlecode.json-simple:json-simple:1.1.1" />
+      <element id="library" level="project" name="Maven: junit:junit:4.10" />
+      <element id="library" level="project" name="Maven: org.hamcrest:hamcrest-core:1.1" />
+      <element id="library" level="project" name="Maven: redis.clients:jedis:3.6.0" />
     </root>
   </artifact>
 </component>

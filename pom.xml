@@ -99,6 +99,13 @@
             <artifactId>commons-pool2</artifactId>
             <version>2.11.1</version>
         </dependency>
+
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+<!--            <version>4.2.0</version>-->
+            <version>3.6.0</version>
+        </dependency>
     </dependencies>
 
 
