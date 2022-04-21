@@ -1,55 +1,60 @@
 
-import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.*;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
 import org.json.JSONObject;
+import redis.clients.jedis.*;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 public class Consumer {
 
-    private final static String QUEUE_NAME = "QUEUE";
+    private static final String EXCHANGE_NAME = "messages";
+    private final static String QUEUE_NAME = "Skier_Queue";
 
     public static void main(String[] argv) throws Exception {
 
         ConnectionFactory factory = new ConnectionFactory();
-//        factory.setHost("localhost");
-        factory.setUsername("radmin");
-        factory.setPassword("jm");
-        factory.setHost("ec2-52-27-220-226.us-west-2.compute.amazonaws.com");
-        factory.setPort(5672);
-        final Connection connection = factory.newConnection();
+        factory.setHost("localhost");
+//        factory.setUsername("radmin");
+//        factory.setPassword("radmin");
+//        factory.setHost("ec2-54-186-85-234.us-west-2.compute.amazonaws.com");
+//        factory.setPort(5672);
+        Connection connection = factory.newConnection();
 
-        //hashmap to store jsonObject
-        ConcurrentHashMap<Integer, List<JSONObject>> hashMap = new ConcurrentHashMap<>();
+        //connect to Jedis
+//        JedisPool pool = new JedisPool("35.165.251.248", 6378);
+        JedisPool pool = new JedisPool("localhost", 6379);
 
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 try {
 
-                    final Channel channel = connection.createChannel();
+                    Channel channel = connection.createChannel();
+                    channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.FANOUT);
                     channel.queueDeclare(QUEUE_NAME, true, false, false, null);
-                    // max one message per receiver
-                    channel.basicQos(1);
+                    channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, "");
                     System.out.println(" [*] Thread waiting for messages. To exit press CTRL+C");
-
                     DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                         String message = new String(delivery.getBody(), "UTF-8");
+                        //Database 1.0
+//                        JSONObject jsonObject = new JSONObject(message);
+//                        String keyStr = jsonObject.getString("key");
+                        //Database 2.0
                         JSONObject jsonObject = new JSONObject(message);
-                        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
-                        //retrieve LiftID and store in a hashmap
-                        int liftID = jsonObject.getInt("liftID");
-                        hashMap.computeIfAbsent(liftID,n -> Collections.synchronizedList(new ArrayList())).add(jsonObject);
-                        System.out.println( "Callback thread ID = " + Thread.currentThread().getId() + " Received '" + jsonObject + "'");
+                        int skierID = jsonObject.getInt("skierID");
+                        String keyStr = String.valueOf(skierID);
+                        //add jsonObject to Jedis
+                        try (Jedis jedis = pool.getResource()) {
+                            jedis.set(keyStr, jsonObject.toString());
+//                            System.out.println(jedis.get(keyStr) + " is saved to Redis." );
+                        }
                     };
-                    // process messages
-                    channel.basicConsume(QUEUE_NAME, false, deliverCallback, consumerTag -> { });
+                    // consume messages
+                    channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> { });
                 } catch (IOException ex) {
                     Logger.getLogger(Consumer.class.getName()).log(Level.SEVERE, null, ex);
                 }
